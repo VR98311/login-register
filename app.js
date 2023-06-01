@@ -3,6 +3,8 @@ const express = require("express");
 const bodyParser = require('body-parser')
 const ejs = require("ejs");
 const md5 = require("md5");
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 require("dotenv").config();
 
@@ -21,7 +23,6 @@ const userSchema = new mongoose.Schema({
 
 
 
-
 const userList = mongoose.model("userList",userSchema);
 
 app.get("/", (req, res) => {
@@ -32,10 +33,14 @@ app.route("/login")
 .get((req, res) => {
     res.render("login");
 }).post((req,res)=>{
-   userList.findOne({username:req.body.username}).then((foundUser)=>{
-     if(foundUser.password === md5(req.body.password)){
-        res.render("secrets");
-     }
+    
+   userList.findOne({username:req.body.username}).then((foundUser)=>{    
+     bcrypt.compare(req.body.password, foundUser.password, function(err, result) {
+            if(result == true){
+            res.render("secrets");
+            }
+        });
+     
    });
 });
 
@@ -44,15 +49,20 @@ app.route("/register")
     res.render("register");
 })
 .post((req,res) => {
-    const user = new userList({
-     username: req.body.username,
-     password: md5(req.body.password)
+
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        const user = new userList({
+            username: req.body.username,
+            password: hash
+           });
+           user.save().then((foundUser)=>{
+               res.render("secrets");
+           }).catch((err)=>{
+               console.log(err);
+           });
     });
-    user.save().then((foundUser)=>{
-        res.render("secrets");
-    }).catch((err)=>{
-        console.log(err);
-    });
+    
+    
 });
 
 app.get("/secrets", (req, res) => {
