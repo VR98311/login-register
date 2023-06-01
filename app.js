@@ -3,7 +3,7 @@ const express = require("express");
 const bodyParser = require('body-parser')
 const ejs = require("ejs");
 const md5 = require("md5");
-const encrypt = require("mongoose-encryption");
+
 require("dotenv").config();
 
 const app = express();
@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
 });
 
 
-userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ['password'] });
+
 
 const userList = mongoose.model("userList",userSchema);
 
@@ -33,7 +33,7 @@ app.route("/login")
     res.render("login");
 }).post((req,res)=>{
    userList.findOne({username:req.body.username}).then((foundUser)=>{
-     if(foundUser.password === req.body.password){
+     if(foundUser.password === md5(req.body.password)){
         res.render("secrets");
      }
    });
@@ -46,7 +46,7 @@ app.route("/register")
 .post((req,res) => {
     const user = new userList({
      username: req.body.username,
-     password: (req.body.password)
+     password: md5(req.body.password)
     });
     user.save().then((foundUser)=>{
         res.render("secrets");
